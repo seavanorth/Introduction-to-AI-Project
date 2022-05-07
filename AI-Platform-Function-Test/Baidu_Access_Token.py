@@ -16,5 +16,5 @@ response = requests.get(host)
 if response:
     print(response.json())
     
-# 'access_token': '24.cc1f7205fe00e022c6b09558a9dd52f0.2592000.1648962980.282335-25704329'
+# 'access_token': xxx
 # 'expires_in': 2592000
