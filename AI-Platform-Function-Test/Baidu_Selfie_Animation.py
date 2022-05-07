@@ -22,7 +22,7 @@ f = open(image_path, 'rb')
 img = base64.b64encode(f.read())
 
 params = {"image":img}
-access_token = '24.cc1f7205fe00e022c6b09558a9dd52f0.2592000.1648962980.282335-25704329'
+access_token = 'xxx'
 request_url = request_url + "?access_token=" + access_token
 headers = {'content-type': 'application/x-www-form-urlencoded'}
 response = requests.post(request_url, data=params, headers=headers)
