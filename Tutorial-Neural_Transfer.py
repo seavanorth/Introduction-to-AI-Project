@@ -34,7 +34,7 @@ import torchvision.models as models
 # 深度拷贝模型
 import copy
 
-
+cal_times = 1000
 ''' 
 # 2.运行设备选择-CUDA
 '''
@@ -60,8 +60,8 @@ def image_loader(image_name):
     return image.to(device, torch.float)
 
 
-style_img_path = "D:/data-work/Codes/vscode-python/images/neural-style/monet.jpg"
-content_img_path = "D:/data-work/Codes/vscode-python/images/neural-style/dancing.jpg"
+style_img_path = "D:/data-work/Codes/vscode-python/images/style/starry-1.jpg"
+content_img_path = "D:/data-work/Codes/vscode-python/images/content/chief.jpg"
 style_img = image_loader(style_img_path)
 content_img = image_loader(content_img_path)
 
@@ -162,6 +162,8 @@ model_dir = 'D:/data-work/Codes/vscode-python/vgg19-dcbb9e9d.pth'
 model = load_model('vgg19',model_dir)
 """
 
+
+
 # 6.1 设置网络为评估模式 `.eval()`、
 
 cnn = models.vgg19(pretrained=True).features.to(device).eval()
@@ -179,8 +181,11 @@ class Normalization(nn.Module):
         # .view the mean and std to make them [C x 1 x 1] so that they can
         # directly work with image Tensor of shape [B x C x H x W].
         # B is batch size. C is number of channels. H is height and W is width.
-        self.mean = torch.tensor(mean).view(-1, 1, 1)
-        self.std = torch.tensor(std).view(-1, 1, 1)
+        self.mean = mean.clone().detach().view(-1,1,1)
+        self.std = std.clone().detach().view(-1,1,1)
+        # 经过提示后使用上述两个语句来拷贝张量，原语句如下
+        # self.mean = torch.tensor(mean).view(-1, 1, 1)
+        # self.std = torch.tensor(std).view(-1, 1, 1)
 
     def forward(self, img):
         # normalize img
@@ -273,10 +278,11 @@ def get_input_optimizer(input_img):
 # optimizer需要`closure()`函数，用于重新评估模型，并返回损失值
 # 每次网络运行时，修正输入值至0-1张量
 def run_style_transfer(cnn, normalization_mean, normalization_std,
-                       content_img, style_img, input_img, num_steps=300,
+                       content_img, style_img, input_img, num_steps=cal_times,
                        style_weight=1000000, content_weight=1):
     """Run the style transfer."""
-    print('Building the style transfer model..')
+    print('正在建立风格迁移模型..')
+    # print('Building the style transfer model..')
     model, style_losses, content_losses = get_style_model_and_losses(cnn,
         normalization_mean, normalization_std, style_img, content_img)
 
@@ -287,7 +293,8 @@ def run_style_transfer(cnn, normalization_mean, normalization_std,
 
     optimizer = get_input_optimizer(input_img)
 
-    print('Optimizing..')
+    print('正在优化中..')
+    # print('Optimizing..')
     run = [0]
     while run[0] <= num_steps:
 
@@ -315,8 +322,13 @@ def run_style_transfer(cnn, normalization_mean, normalization_std,
             run[0] += 1
             if run[0] % 50 == 0:
                 print("run {}:".format(run))
-                print('Style Loss : {:4f} Content Loss: {:4f}'.format(
-                    style_score.item(), content_score.item()))
+                print('风格损失: {:4f} 内容损失: {:4f}'.format(style_score.item(), content_score.item()))
+                # print('Style Loss : {:4f} Content Loss: {:4f}'.format(style_score.item(), content_score.item()))
+                print()
+            elif run[0] == cal_times:
+                print("run {}:".format(run))
+                print('风格损失: {:4f} 内容损失: {:4f}'.format(style_score.item(), content_score.item()))
+                # print('Style Loss : {:4f} Content Loss: {:4f}'.format(style_score.item(), content_score.item()))
                 print()
 
             return style_score + content_score
@@ -330,19 +342,53 @@ def run_style_transfer(cnn, normalization_mean, normalization_std,
     return input_img
 
 '''
+批量绘制图片+批量存储
+'''
+# TODO
+'''
+import matplotlib.pyplot as plt
+import os
+def batch_process_image():
+    for i in range(0,3,1):
+        x=[i,1,2,3,4,5]
+        y=[0,2,4,6,8,10]
+        name_list=["one","two","three"]#先创建名字列表，可以是用在图片命名，也可以用在文件夹命名
+        plt.plot(x,y)
+        # 指定图片保存路径
+        figure_save_path = "files_fig_many"#这里创建了一个文件夹，如果依次创建不同文件夹，可以用name_list[i]
+        if not os.path.exists(figure_save_path):
+            os.makedirs(figure_save_path) # 如果不存在目录figure_save_path，则创建
+        plt.savefig(os.path.join(figure_save_path , name_list[i]))#分别命名图片
+        plt.show()
+
+
+def save_img1(img, img_name):
+    # plt.figure(figsize=(1024, 1024), dpi=1)  # 指定分辨率为1024 * 1024
+    plt.figure()
+    img = Image.open(img)
+    plt.imshow(img, cmap='gray')
+    plt.axis('off')
+
+    # 图片的路径
+    result_path = './images/output'
+    save_img_path = os.path.join(result_path, img_name)
+    plt.savefig(save_img_path, bbox_inches='tight', pad_inches=0)  # 保存图像
+'''
+
+
+'''
 # 8.运行整个算法
 '''
-output = run_style_transfer(cnn, cnn_normalization_mean, cnn_normalization_std,
-                            content_img, style_img, input_img)
+def main():
+    output = run_style_transfer(cnn, cnn_normalization_mean, cnn_normalization_std,
+                                content_img, style_img, input_img)
+    
+    plt.figure()
+    imshow(output, title='Output Image')
+    
+    # sphinx_gallery_thumbnail_number = 4
+    plt.ioff()
+    plt.show()
 
-plt.figure()
-plt.savefig("output.jpg")
-imshow(output, title='Output Image')
-
-# sphinx_gallery_thumbnail_number = 4
-plt.ioff()
-#plt.savefig("D:/data-work/Codes/vscode-python/images/after1.jpg")
-plt.show()
-
-
-
+if __name__=="__main__":
+    main()
